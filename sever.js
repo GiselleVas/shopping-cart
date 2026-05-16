@@ -1,0 +1,78 @@
+const express = require('express');
+const path = require('path');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware to parse JSON bodies and handle cross-origin requests
+app.use(express.json());
+
+// This serves as our mock database for products
+const products = [
+    { id: 1, name: "Premium Wireless Headphones", price: 299.99, image: "https://placehold.co/400x300/6366f1/ffffff?text=Headphones", category: "Electronics", stock: 15 },
+    { id: 2, name: "Minimalist Smart Watch", price: 199.50, image: "https://placehold.co/400x300/8b5cf6/ffffff?text=Watch", category: "Wearables", stock: 8 },
+    { id: 3, name: "Mechanical Gaming Keyboard", price: 129.00, image: "https://placehold.co/400x300/ec4899/ffffff?text=Keyboard", category: "Accessories", stock: 22 },
+    { id: 4, name: "Ergonomic Office Chair", price: 450.00, image: "https://placehold.co/400x300/f59e0b/ffffff?text=Chair", category: "Furniture", stock: 5 }
+];
+
+
+/**
+ * GET /api/products
+ * Returns the full list of available products
+ */
+app.get('/api/products', (req, res) => {
+    try {
+        res.status(200).json(products);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching products", error: error.message });
+    }
+});
+
+/**
+ * POST /api/checkout
+ * Validates the order and simulates payment processing
+ */
+app.post('/api/checkout', (req, res) => {
+    const { items, total } = req.body;
+
+    if (!items || items.length === 0) {
+        return res.status(400).json({ success: false, message: "Cart is empty" });
+    }
+
+    // Server-side total validation (Security check)
+    let calculatedTotal = 0;
+    items.forEach(item => {
+        const product = products.find(p => p.id === item.id);
+        if (product) {
+            calculatedTotal += product.price * item.quantity;
+        }
+    });
+
+    // Add simulated tax (10%) and shipping (conditional)
+    const tax = calculatedTotal * 0.1;
+    const shipping = calculatedTotal > 500 ? 0 : 15;
+    const finalTotal = calculatedTotal + tax + shipping;
+
+    // In a real app, you would integrate Stripe/PayPal here
+    console.log(`Processing order for total: $${finalTotal.toFixed(2)}`);
+
+    res.status(200).json({
+        success: true,
+        orderId: `ORD-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        message: "Order placed successfully!",
+        receipt: {
+            subtotal: calculatedTotal.toFixed(2),
+            tax: tax.toFixed(2),
+            shipping: shipping.toFixed(2),
+            total: finalTotal.toFixed(2)
+        }
+    });
+});
+
+app.listen(PORT, () => {
+    console.log(`----------------------------------------`);
+    console.log(`SwiftCart Backend running at http://localhost:${PORT}`);
+    console.log(`API Endpoints available:`);
+    console.log(`- GET  /api/products`);
+    console.log(`- POST /api/checkout`);
+    console.log(`----------------------------------------`);
+});
